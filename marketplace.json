@@ -1,0 +1,20 @@
+{
+  "name": "team0",
+  "interface": {
+    "displayName": "Team0"
+  },
+  "plugins": [
+    {
+      "name": "team0-agent-runtime",
+      "source": {
+        "source": "local",
+        "path": "./team0-agent-runtime"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "team0",
+  "owner": {
+    "name": "Team0",
+    "email": "support@team0.ai"
+  },
+  "description": "Team0 plugins: keep your Living Understanding with you in Claude Code.",
+  "plugins": [
+    {
+      "name": "team0-agent-runtime",
+      "source": "./team0-agent-runtime",
+      "description": "Mount a Team0 Living Understanding before every turn and return completed turns afterward."
+    }
+  ]
+}

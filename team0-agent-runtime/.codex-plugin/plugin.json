@@ -1,0 +1,22 @@
+{
+  "name": "team0-agent-runtime",
+  "version": "0.1.0+codex.20260917063938",
+  "description": "Mount a Team0 Living Understanding into Codex before every turn and return completed turns afterward.",
+  "author": {
+    "name": "Team0"
+  },
+  "interface": {
+    "displayName": "Team0 Living Understanding",
+    "shortDescription": "Use Team0 as Codex's shared, continuously learning understanding.",
+    "longDescription": "Automatically gives Codex relevant Team0 context before each turn, returns the completed conversation for governed learning, and exposes separately authorized Team0 abilities through MCP.",
+    "developerName": "Team0",
+    "category": "Productivity",
+    "capabilities": [
+      "Automatic pre-turn understanding",
+      "Automatic post-turn learning",
+      "Team0 MCP abilities"
+    ],
+    "defaultPrompt": "Use my Team0 Living Understanding as context while helping me."
+  },
+  "mcpServers": "./.mcp.json"
+}

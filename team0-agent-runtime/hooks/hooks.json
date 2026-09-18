@@ -1,0 +1,33 @@
+{
+  "description": "Automatic Team0 Living Understanding lifecycle for Codex.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/scripts/team0_hook.py\" before-turn",
+            "commandWindows": "& \"$env:PLUGIN_ROOT\\scripts\\team0_hook.ps1\" before-turn",
+            "timeout": 10,
+            "additionalContextLimit": 8000,
+            "statusMessage": "Loading your Team0 understanding"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/scripts/team0_hook.py\" after-turn",
+            "commandWindows": "& \"$env:PLUGIN_ROOT\\scripts\\team0_hook.ps1\" after-turn",
+            "async": true,
+            "timeout": 15,
+            "statusMessage": "Returning this turn to Team0"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "description": "Automatic Team0 Living Understanding lifecycle for Claude Code.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/team0_hook.py",
+              "before-turn"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/scripts/team0_hook.py",
+              "after-turn"
+            ],
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "team0-agent-runtime",
+  "displayName": "Team0 Living Understanding",
+  "version": "0.1.0",
+  "description": "Mount a Team0 Living Understanding before every Claude Code turn and return completed turns afterward.",
+  "author": {
+    "name": "Team0"
+  },
+  "hooks": "./claude/hooks.json",
+  "mcpServers": {
+    "team0": {
+      "command": "python3",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/scripts/team0_mcp_proxy.py"
+      ]
+    }
+  }
+}

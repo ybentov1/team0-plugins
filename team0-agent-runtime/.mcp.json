@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "team0": {
+      "command": "python3",
+      "args": ["scripts/team0_mcp_proxy.py"],
+      "cwd": ".",
+      "env_vars": ["TEAM0_API_KEY", "TEAM0_ACCESS_KEY", "TEAM0_API_BASE_URL", "PLUGIN_DATA", "TEAM0_RUNTIME_DATA_DIR"],
+      "enabled": true,
+      "startup_timeout_sec": 10,
+      "tool_timeout_sec": 90
+    }
+  }
+}
