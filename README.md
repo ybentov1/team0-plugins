@@ -16,6 +16,8 @@ so it keeps learning. You need a [Team0](https://team0.ai) account.
     codex plugin marketplace add ybentov1/team0-plugins
     codex plugin add team0-agent-runtime@team0
 
+Both hosts read the same catalog, `.claude-plugin/marketplace.json`.
+
 Then start a new session. Team0 opens a page in your browser once; click
 **Connect**, and every session after that is automatic.
 
