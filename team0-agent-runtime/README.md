@@ -74,6 +74,10 @@ Each host applies its own trust review before plugin hooks run. No API key is wr
 prompts, or source code. macOS uses Keychain; Windows uses current-user protected storage; Linux
 uses a private runtime file.
 
+Each host keeps its own credential, data directory and Team0 agent; one host never
+borrows another's key. `scripts/host_profile.py` is the single definition of how a
+host is detected, where its state lives and which credential it may use.
+
 For local Claude Code development, load the same plugin directory directly:
 
 ```bash
@@ -85,8 +89,35 @@ callbacks even though `UserPromptSubmit` does not supply a turn ID. It does not 
 the Team0 brain. Its brain path has been conformance-tested across fresh Claude Code sessions: an
 ordinary preference stated in one session was learned by Team0 and recalled in another.
 
+## Install
+
+Both hosts install from a published catalog, and each connects itself:
+
+```bash
+claude plugin marketplace add https://team0.ai/plugins/marketplace.json
+claude plugin install team0-agent-runtime@team0
+
+codex plugin marketplace add ybentov1/team0-plugins
+codex plugin add team0-agent-runtime@team0
+```
+
+Restart the host once. `SessionStart` asks whether this host is connected; an
+unconnected host opens the Team0 connect page immediately and says so in one line,
+rather than waiting for a first message to discover it. A connected host prints
+nothing and runs nothing.
+
+The two published copies are built from this directory: the archive the Team0
+frontend build publishes, and the public git marketplace Codex requires.
+`scripts/publish_agent_plugin.py` compares both against this directory and, with
+`--apply`, pushes the git copy.
+
+`scripts/pair.py --host <id>` pairs from a plain shell, where none of a host's own
+markers are present; without it the run would pair as Codex.
+
 ## Runtime behavior
 
+- `SessionStart`: checks whether this host holds a credential, and starts pairing if it
+  does not. It never reads or writes understanding.
 - `UserPromptSubmit`: saves a durable turn identity, calls the same
   `team0_living_understanding` MCP tool used by interactive hosts, and adds its server-owned
   projection as developer context. A timeout degrades open.
@@ -156,10 +187,12 @@ Both should recall the decision; neither should report implementation details cr
 external agent. A decision captured before the server correction may remain candidate-only and is
 not silently promoted, so the canary must use a new statement.
 
-Current beta gaps are the initial plugin installation/discovery handoff, remote reporting for
-ongoing degraded or failed sync after initial activation, pre-turn latency within the shared five-second
-target, live three-agent proof with separately paired production credentials, a full-lifecycle
-third-host/custom-agent conformance run, and typed action-outcome proof.
+Installation and discovery are no longer a gap: both hosts install from a published
+catalog and connect themselves. Current beta gaps are remote reporting for ongoing
+degraded or failed sync after initial activation, pre-turn latency within the shared
+five-second target, live three-agent proof with separately paired production
+credentials, a full-lifecycle third-host/custom-agent conformance run, and typed
+action-outcome proof.
 
 ## Structured tool outcome envelope
 

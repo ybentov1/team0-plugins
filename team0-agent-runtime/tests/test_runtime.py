@@ -817,7 +817,9 @@ def test_default_read_timeout_finishes_before_codex_kills_the_hook(tmp_path):
 def test_codex_default_requests_only_the_two_required_brain_permissions():
     hooks = json.loads((PLUGIN_ROOT / "hooks/hooks.json").read_text())["hooks"]
 
-    assert set(hooks) == {"UserPromptSubmit", "Stop"}
+    # SessionStart only asks whether this host is connected; the two lifecycle
+    # events remain the only ones that read or write understanding.
+    assert set(hooks) == {"UserPromptSubmit", "Stop", "SessionStart"}
     for event in hooks.values():
         handler = event[0]["hooks"][0]
         assert handler["command"].startswith("python3 ")
@@ -828,7 +830,7 @@ def test_codex_default_requests_only_the_two_required_brain_permissions():
 def test_codex_hook_manifest_is_stable_after_runtime_updates():
     raw = (PLUGIN_ROOT / "hooks/hooks.json").read_bytes()
     assert hashlib.sha256(raw).hexdigest() == (
-        "f75ea4db93d1a4d94be8926606db25cba262d3c932719028248455b16fe8484d"
+        "acf0644a9b5af6388fc83fd30601f01ca9214af7a343cc447e2cd20fa81ca7c0"
     )
 
 
@@ -837,7 +839,7 @@ def test_claude_stop_waits_for_the_durable_contribution_receipt():
         (PLUGIN_ROOT / "claude/hooks.json").read_text(encoding="utf-8")
     )["hooks"]
 
-    assert set(hooks) == {"UserPromptSubmit", "Stop"}
+    assert set(hooks) == {"UserPromptSubmit", "Stop", "SessionStart"}
     stop = hooks["Stop"][0]["hooks"][0]
     assert stop["args"][-1] == "after-turn"
     assert stop.get("async") is not True
@@ -1410,3 +1412,39 @@ def test_a_host_finds_its_own_credential_in_its_plugin_data_directory(tmp_path, 
     assert host_profile.host_credential(
         "codex", loader=lambda root=None: saved.get(str(root))
     ) == {"key": "t0_codex", "host_id": "codex"}
+
+
+def test_a_session_that_starts_unconnected_opens_the_connect_page(monkeypatch, tmp_path, capsys):
+    """Pairing must not wait for a first message; a fresh session shows nothing."""
+
+    monkeypatch.setenv("CLAUDE_PLUGIN_DATA", str(tmp_path))
+    monkeypatch.setenv("TEAM0_RUNTIME_HOST_ID", "claude-code")
+    monkeypatch.delenv("TEAM0_API_KEY", raising=False)
+    monkeypatch.delenv("TEAM0_ACCESS_KEY", raising=False)
+    monkeypatch.setattr(team0_hook, "load_credential", lambda: None)
+    started = []
+    monkeypatch.setattr(team0_hook, "_start_pairing", lambda host_id: started.append(host_id) or True)
+
+    assert team0_hook.main(["team0_hook.py", "connect"]) == 0
+
+    assert started == ["claude-code"]
+    message = json.loads(capsys.readouterr().out)["systemMessage"]
+    assert "just opened in your browser" in message
+
+    # Already connected: a session start stays silent and opens nothing.
+    started.clear()
+    monkeypatch.setattr(team0_hook, "load_credential", lambda: {
+        "key": "t0_live_ok", "host_id": "claude-code", "contribution_source_id": "src",
+    })
+    assert team0_hook.main(["team0_hook.py", "connect"]) == 0
+    assert started == []
+    assert capsys.readouterr().out == ""
+
+
+def test_every_host_asks_about_its_connection_when_a_session_starts():
+    for manifest in ("claude/hooks.json", "hooks/hooks.json"):
+        hooks = json.loads((PLUGIN_ROOT / manifest).read_text())["hooks"]
+        handler = hooks["SessionStart"][0]["hooks"][0]
+        rendered = json.dumps(handler)
+        assert "connect" in rendered, manifest
+        assert "team0_hook" in rendered, manifest

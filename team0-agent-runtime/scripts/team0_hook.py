@@ -226,6 +226,23 @@ def main(argv: list[str]) -> int:
     _configure_host_environment(host_id)
     if command == "self-test":
         return _self_test(host_id)
+    if command == "connect":
+        # A session that starts unconnected should say so at once, rather than
+        # waiting for a first message to discover it and open the browser then.
+        if _load_saved_credential(host_id):
+            return 0
+        launched = _start_pairing(host_id)
+        _output(
+            warning=(
+                "Team0 is not connected yet. A Team0 page just opened in your browser: "
+                "click Connect there, and this session will use your understanding from "
+                "the next message."
+                if launched
+                else "Team0 is not connected and the connect page could not be opened. "
+                "Connect this host from Team0 under Living Understanding, then Agents."
+            )
+        )
+        return 0
     if command == "before-turn" and not _load_saved_credential(host_id):
         launched = _start_pairing(host_id)
         _output(

@@ -28,6 +28,18 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "python3 \"$PLUGIN_ROOT/scripts/team0_hook.py\" connect",
+            "commandWindows": "& \"$env:PLUGIN_ROOT\\scripts\\team0_hook.ps1\" connect",
+            "timeout": 10,
+            "statusMessage": "Checking your Team0 connection"
+          }
+        ]
+      }
     ]
   }
 }

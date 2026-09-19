@@ -196,8 +196,13 @@ def _handler(
     return PairingHandler
 
 
-def main() -> int:
-    host_id = detect_host_id()
+def main(argv: list[str] | None = None) -> int:
+    # A host's own markers are absent when pairing is run straight from a shell,
+    # right after installing the plugin and before any session has loaded it, so
+    # the host can be named outright: `pair.py --host claude-code`.
+    arguments = list(argv if argv is not None else sys.argv[1:])
+    named = arguments[arguments.index("--host") + 1] if "--host" in arguments[:-1] else ""
+    host_id = named.strip() or detect_host_id()
     credential_root = current_root(host_id)
     with _pairing_lock(credential_root / "pairing.lock") as acquired:
         if not acquired:
