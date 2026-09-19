@@ -830,18 +830,18 @@ def test_codex_default_requests_only_the_two_required_brain_permissions():
 def test_codex_hook_manifest_is_stable_after_runtime_updates():
     raw = (PLUGIN_ROOT / "hooks/hooks.json").read_bytes()
     assert hashlib.sha256(raw).hexdigest() == (
-        "acf0644a9b5af6388fc83fd30601f01ca9214af7a343cc447e2cd20fa81ca7c0"
+        "b7539eab31186e991455f1fdf7b4cd98e480624ab3ab73e176661110227840b3"
     )
 
 
-def test_claude_stop_waits_for_the_durable_contribution_receipt():
+def test_stop_waits_for_the_durable_contribution_receipt():
     hooks = json.loads(
-        (PLUGIN_ROOT / "claude/hooks.json").read_text(encoding="utf-8")
+        (PLUGIN_ROOT / "hooks/hooks.json").read_text(encoding="utf-8")
     )["hooks"]
 
     assert set(hooks) == {"UserPromptSubmit", "Stop", "SessionStart"}
     stop = hooks["Stop"][0]["hooks"][0]
-    assert stop["args"][-1] == "after-turn"
+    assert stop["command"].endswith("after-turn")
     assert stop.get("async") is not True
 
 
@@ -1369,8 +1369,7 @@ def test_every_host_gets_both_lifecycle_hooks_and_team0_abilities():
         assert servers, f"{host_id} has no Team0 abilities"
         if isinstance(servers, str):
             servers = json.loads((PLUGIN_ROOT / servers.removeprefix("./")).read_text())["mcpServers"]
-        hooks = manifest.get("hooks")
-        hooks_file = PLUGIN_ROOT / (hooks.removeprefix("./") if isinstance(hooks, str) else "hooks/hooks.json")
+        hooks_file = PLUGIN_ROOT / "hooks/hooks.json"
         assert hooks_file.is_file(), f"{host_id} has no lifecycle hooks"
         bridge = json.dumps(servers)
         assert "team0_mcp_proxy.py" in bridge, f"{host_id} does not use the shared Team0 bridge"
@@ -1441,10 +1440,22 @@ def test_a_session_that_starts_unconnected_opens_the_connect_page(monkeypatch, t
     assert capsys.readouterr().out == ""
 
 
-def test_every_host_asks_about_its_connection_when_a_session_starts():
-    for manifest in ("claude/hooks.json", "hooks/hooks.json"):
-        hooks = json.loads((PLUGIN_ROOT / manifest).read_text())["hooks"]
-        handler = hooks["SessionStart"][0]["hooks"][0]
-        rendered = json.dumps(handler)
-        assert "connect" in rendered, manifest
-        assert "team0_hook" in rendered, manifest
+def test_one_hook_file_serves_every_host():
+    """Both hosts discover hooks/hooks.json, so a second file runs twice or fails.
+
+    Claude Code loaded its own declared file *and* this conventional one, and the
+    Codex-shaped entries in it referenced $PLUGIN_ROOT, which Claude Code does not
+    set: every turn reported a hook error.
+    """
+
+    assert not (PLUGIN_ROOT / "claude/hooks.json").exists()
+    manifest = json.loads((PLUGIN_ROOT / ".claude-plugin/plugin.json").read_text())
+    assert "hooks" not in manifest, "a declared hooks file is loaded on top of the conventional one"
+
+    hooks = json.loads((PLUGIN_ROOT / "hooks/hooks.json").read_text())["hooks"]
+    handler = hooks["SessionStart"][0]["hooks"][0]
+    assert "connect" in handler["command"]
+    for event, handlers in hooks.items():
+        command = handlers[0]["hooks"][0]["command"]
+        # Either host's root variable resolves; neither host sets the other's.
+        assert "${CLAUDE_PLUGIN_ROOT:-$PLUGIN_ROOT}" in command, event

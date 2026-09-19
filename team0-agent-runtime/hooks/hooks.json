@@ -1,16 +1,29 @@
 {
-  "description": "Automatic Team0 Living Understanding lifecycle for Codex.",
+  "description": "Automatic Team0 Living Understanding lifecycle. Both hosts load this file: Claude Code discovers hooks/hooks.json, and so does Codex.",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT:-$PLUGIN_ROOT}/scripts/team0_hook.py\" connect",
+            "commandWindows": "& \"$env:PLUGIN_ROOT\\scripts\\team0_hook.ps1\" connect",
+            "timeout": 10,
+            "statusMessage": "Checking your Team0 connection"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$PLUGIN_ROOT/scripts/team0_hook.py\" before-turn",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT:-$PLUGIN_ROOT}/scripts/team0_hook.py\" before-turn",
             "commandWindows": "& \"$env:PLUGIN_ROOT\\scripts\\team0_hook.ps1\" before-turn",
             "timeout": 10,
-            "additionalContextLimit": 8000,
-            "statusMessage": "Loading your Team0 understanding"
+            "statusMessage": "Loading your Team0 understanding",
+            "additionalContextLimit": 8000
           }
         ]
       }
@@ -20,23 +33,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$PLUGIN_ROOT/scripts/team0_hook.py\" after-turn",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT:-$PLUGIN_ROOT}/scripts/team0_hook.py\" after-turn",
             "commandWindows": "& \"$env:PLUGIN_ROOT\\scripts\\team0_hook.ps1\" after-turn",
-            "async": true,
             "timeout": 15,
             "statusMessage": "Returning this turn to Team0"
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "command": "python3 \"$PLUGIN_ROOT/scripts/team0_hook.py\" connect",
-            "commandWindows": "& \"$env:PLUGIN_ROOT\\scripts\\team0_hook.ps1\" connect",
-            "timeout": 10,
-            "statusMessage": "Checking your Team0 connection"
           }
         ]
       }

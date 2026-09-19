@@ -7,7 +7,6 @@
   "author": {
     "name": "Team0"
   },
-  "hooks": "./claude/hooks.json",
   "mcpServers": {
     "team0": {
       "command": "python3",
