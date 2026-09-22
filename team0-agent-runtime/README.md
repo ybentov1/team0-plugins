@@ -101,10 +101,11 @@ codex plugin marketplace add ybentov1/team0-plugins
 codex plugin add team0-agent-runtime@team0
 ```
 
-Restart the host once. `SessionStart` asks whether this host is connected; an
-unconnected host opens the Team0 connect page immediately and says so in one line,
-rather than waiting for a first message to discover it. A connected host prints
-nothing and runs nothing.
+Restart the host once. Codex users must also run `/hooks`, review the Team0 plugin
+source, and trust its three hooks once; Codex intentionally skips untrusted plugin
+hooks. `SessionStart` then asks whether this host is connected. An unconnected host
+opens the Team0 connect page immediately and says so in one line, rather than waiting
+for a first message to discover it. A connected host prints nothing and runs nothing.
 
 The two published copies are built from this directory: the archive the Team0
 frontend build publishes, and the public git marketplace Codex requires.

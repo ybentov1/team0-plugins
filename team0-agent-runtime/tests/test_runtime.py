@@ -1047,7 +1047,7 @@ def test_local_pairing_accepts_only_matching_state_and_valid_team0_binding(monke
 
     assert response.status == 200
     assert outcome == {"connected": True}
-    assert stored == [("t0_live_pairing", "source_pairing", "codex", None)]
+    assert stored == [("t0_live_pairing", "source_pairing", "codex", tmp_path)]
 
 
 def test_local_pairing_rejects_a_mismatched_state(monkeypatch, tmp_path):
@@ -1435,9 +1435,34 @@ def test_a_session_that_starts_unconnected_opens_the_connect_page(monkeypatch, t
     monkeypatch.setattr(team0_hook, "load_credential", lambda: {
         "key": "t0_live_ok", "host_id": "claude-code", "contribution_source_id": "src",
     })
+    monkeypatch.setattr(
+        team0_hook.Team0ApiClient,
+        "get_agent_runtime_binding",
+        lambda _client: {"contribution_source_id": "src"},
+    )
     assert team0_hook.main(["team0_hook.py", "connect"]) == 0
     assert started == []
     assert capsys.readouterr().out == ""
+
+
+def test_a_revoked_saved_credential_starts_reconnection(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("PLUGIN_DATA", str(tmp_path))
+    monkeypatch.setenv("TEAM0_RUNTIME_HOST_ID", "codex")
+    monkeypatch.setattr(team0_hook, "load_credential", lambda: {
+        "key": "t0_live_revoked", "host_id": "codex", "contribution_source_id": "src",
+    })
+
+    def revoked(_client):
+        raise ApiError("auth.revoked", status=401)
+
+    monkeypatch.setattr(team0_hook.Team0ApiClient, "get_agent_runtime_binding", revoked)
+    started = []
+    monkeypatch.setattr(team0_hook, "_start_pairing", lambda host_id: started.append(host_id) or True)
+
+    assert team0_hook.main(["team0_hook.py", "connect"]) == 0
+
+    assert started == ["codex"]
+    assert "fresh Team0 connection page opened" in json.loads(capsys.readouterr().out)["systemMessage"]
 
 
 def test_one_hook_file_serves_every_host():

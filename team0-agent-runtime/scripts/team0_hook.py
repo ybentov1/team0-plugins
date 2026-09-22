@@ -17,7 +17,12 @@ from typing import Any, Mapping
 PLUGIN_ROOT = Path(os.environ.get("PLUGIN_ROOT") or Path(__file__).resolve().parents[1])
 sys.path.insert(0, str(PLUGIN_ROOT / "runtime"))
 
-from team0_agent_runtime import RuntimeConfig, Team0AgentRuntime  # noqa: E402
+from team0_agent_runtime import (  # noqa: E402
+    ApiError,
+    RuntimeConfig,
+    Team0AgentRuntime,
+    Team0ApiClient,
+)
 from team0_agent_runtime.storage import stable_id  # noqa: E402
 from credential_store import load_credential  # noqa: E402
 from host_profile import (  # noqa: E402
@@ -90,6 +95,25 @@ def _start_pairing(host_id: str) -> bool:
         )
         return False
     return True
+
+
+def _credential_is_revoked(host_id: str) -> bool:
+    """Validate a saved key without reading or writing the owner's understanding."""
+
+    if not _load_saved_credential(host_id):
+        return False
+    config = RuntimeConfig.from_environ()
+    try:
+        Team0ApiClient(
+            base_url=config.api_base_url,
+            api_key=config.api_key or "",
+            read_timeout_seconds=config.context_timeout_seconds,
+            write_timeout_seconds=config.write_timeout_seconds,
+            host_name=config.host_id,
+        ).get_agent_runtime_binding()
+    except ApiError as error:
+        return error.status in {401, 403, 410}
+    return False
 
 
 def _launcher_name() -> str:
@@ -230,6 +254,18 @@ def main(argv: list[str]) -> int:
         # A session that starts unconnected should say so at once, rather than
         # waiting for a first message to discover it and open the browser then.
         if _load_saved_credential(host_id):
+            if not _credential_is_revoked(host_id):
+                return 0
+            launched = _start_pairing(host_id)
+            _output(
+                warning=(
+                    "Team0 access ended. A fresh Team0 connection page opened in your "
+                    "browser; reconnect there to restore this host."
+                    if launched
+                    else "Team0 access ended and automatic reconnection could not start. "
+                    "Reconnect this host from Team0 under Living Understanding, then Agents."
+                )
+            )
             return 0
         launched = _start_pairing(host_id)
         _output(
