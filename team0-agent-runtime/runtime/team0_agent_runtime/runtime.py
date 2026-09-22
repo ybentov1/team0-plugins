@@ -131,10 +131,14 @@ class Team0AgentRuntime:
             return self._write_error("not_configured", "Team0 access is not configured.")
         source_id = self._contribution_source_id()
         if not source_id:
-            return self._write_error(
-                "source_not_configured",
-                "Team0 learning is not configured for this connection.",
+            # The owner may stop conversation contribution without revoking the
+            # agent's read access.  That is a successful privacy control, not a
+            # failed sync to retain and retry.
+            self.store.delete_turn(turn_id)
+            self.store.update_health(
+                state="healthy", last_write_error=None, last_write_at=utc_now()
             )
+            return None
         prompt = str(turn.get("prompt") or "")
         answer = str(assistant_message or "")
         if len(prompt) > MAX_MESSAGE_CHARS or len(answer) > MAX_MESSAGE_CHARS:
@@ -240,15 +244,17 @@ class Team0AgentRuntime:
         return result.get("message")
 
     def _contribution_source_id(self) -> str | None:
-        if self.config.contribution_source_id:
-            return self.config.contribution_source_id
         if not self.client:
-            return None
+            return self.config.contribution_source_id
         try:
             binding = self.client.get_agent_runtime_binding()
-        except ApiError:
-            return None
+        except ApiError as error:
+            if error.code == "runtime.binding_unavailable" and error.status == 409:
+                return None
+            return self.config.contribution_source_id
         source_id = binding.get("contribution_source_id")
+        if self.config.contribution_source_id:
+            return self.config.contribution_source_id
         return source_id if isinstance(source_id, str) and source_id else None
 
     def flush_pending(self, *, limit: int = 8) -> Mapping[str, Any]:

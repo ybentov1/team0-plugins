@@ -122,8 +122,10 @@ markers are present; without it the run would pair as Codex.
 - `UserPromptSubmit`: saves a durable turn identity, calls the same
   `team0_living_understanding` MCP tool used by interactive hosts, and adds its server-owned
   projection as developer context. A timeout degrades open.
-- `Stop`: stores the completed turn in a local outbox before posting it to `/wm/events`. Delivery is
-  idempotent and replays due outbox records on later completed turns, up to eight attempts.
+- `Stop`: while conversation contribution is enabled, stores the completed turn in a local outbox
+  before posting it to `/wm/events`. Delivery is idempotent and replays due outbox records on later
+  completed turns, up to eight attempts. If the owner stops conversation contribution, reads remain
+  available and completed turns are skipped cleanly without a warning or retry record.
 
 Before each turn, the portable runtime returns `team0.agent_turn_context.v1` with fixed policy and
 retrieved data as separate fields. Team0 supplies cross-session direction—decisions, priorities,

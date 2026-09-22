@@ -150,7 +150,9 @@ def test_status_keeps_diagnostics_available_when_storage_is_unwritable(monkeypat
 
 
 class FakeClient:
-    def __init__(self, *, read=None, read_error=None, write_error=None):
+    def __init__(
+        self, *, read=None, read_error=None, write_error=None, binding_error=None
+    ):
         self.read = read or {
             "id": "wmread_1",
             "status": "completed",
@@ -165,11 +167,14 @@ class FakeClient:
         }
         self.read_error = read_error
         self.write_error = write_error
+        self.binding_error = binding_error
         self.read_calls = []
         self.events = []
         self.completed_actions = []
 
     def get_agent_runtime_binding(self):
+        if self.binding_error:
+            raise self.binding_error
         return {"contribution_source_id": "source_discovered"}
 
     def create_understanding_read(self, **kwargs):
@@ -622,6 +627,24 @@ def test_completed_turn_discovers_server_bound_source_when_not_configured(tmp_pa
 
     event, _ = client.events[0]
     assert event["registered_source_id"] == "source_discovered"
+
+
+def test_disabled_conversation_contribution_is_a_clean_noop(tmp_path):
+    client = FakeClient(binding_error=ApiError(
+        "runtime.binding_unavailable", status=409,
+    ))
+    runtime = Team0AgentRuntime(config(tmp_path), client=client)
+    runtime.before_turn(session_id="session_1", turn_id="turn_1", prompt="Do it")
+
+    warning = runtime.after_turn(turn_id="turn_1", assistant_message="Done")
+
+    assert warning is None
+    assert not client.events
+    assert runtime.store.get_turn("turn_1") is None
+    assert not list((tmp_path / "outbox").glob("*.json"))
+    health = runtime.store.health()
+    assert health["state"] == "healthy"
+    assert health["last_write_error"] is None
 
 
 def test_retryable_write_failure_keeps_same_record_and_idempotency_identity(tmp_path):

@@ -91,7 +91,7 @@ class McpHttpBridge:
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
             "MCP-Protocol-Version": self._version_for(message),
-            "User-Agent": "team0-agent-runtime/0.1.0",
+            "User-Agent": "team0-agent-runtime/0.1.1",
         }
         if self._session_id:
             headers["Mcp-Session-Id"] = self._session_id

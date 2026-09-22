@@ -166,7 +166,7 @@ class Team0ApiClient:
         request_headers = {
             "Accept": "application/json",
             "Authorization": f"Bearer {self._api_key}",
-            "User-Agent": "team0-agent-runtime/0.1.0",
+            "User-Agent": "team0-agent-runtime/0.1.1",
         }
         request_headers.update(headers or {})
         data = None
