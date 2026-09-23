@@ -1,0 +1,7 @@
+{
+  "id": "team0-agent-runtime",
+  "name": "Team0 Living Understanding",
+  "description": "Automatic governed Team0 context and conversation learning for OpenClaw.",
+  "activation": { "onStartup": true },
+  "configSchema": { "type": "object", "additionalProperties": false }
+}

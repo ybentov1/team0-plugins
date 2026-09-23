@@ -1,0 +1,9 @@
+{
+  "name": "team0-agent-runtime",
+  "version": "0.1.2",
+  "type": "module",
+  "openclaw": {
+    "extensions": ["./openclaw/index.mjs"],
+    "compat": { "pluginApi": ">=2026.9.4", "minGatewayVersion": "2026.9.4" }
+  }
+}

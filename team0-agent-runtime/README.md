@@ -89,6 +89,36 @@ callbacks even though `UserPromptSubmit` does not supply a turn ID. It does not 
 the Team0 brain. Its brain path has been conformance-tested across fresh Claude Code sessions: an
 ordinary preference stated in one session was learned by Team0 and recalled in another.
 
+### OpenClaw
+
+OpenClaw has a native typed-hook adapter in `openclaw/`. It reuses this Python runtime rather than
+relying on the model to call a contribution tool. Keep the owner's Team0 MCP connection named
+`team0` at `https://api.team0.ai/v1/mcp`; the adapter reads that connection's bearer key locally,
+injects governed context at `before_prompt_build`, and submits the exact completed user/assistant
+exchange at `agent_end`. It does not put the key into the prompt or log it. It skips internal,
+failed, and uncorrelated turns. OpenClaw needs Python 3 in the Gateway environment.
+
+After the public plugin repository is published, run these in the Gateway environment:
+
+```bash
+openclaw plugins install team0-agent-runtime --marketplace ybentov1/team0-plugins
+openclaw config set plugins.entries.team0-agent-runtime.hooks.allowConversationAccess true --strict-json
+openclaw plugins enable team0-agent-runtime
+```
+
+Review OpenClaw's install and capability-consent prompts before accepting them. Restart the
+Gateway, start a new conversation, and inspect with
+`openclaw plugins inspect team0-agent-runtime --runtime --json`: `before_prompt_build` and
+`agent_end` must both appear under `typedHooks`. In Docker, run the commands inside the Gateway
+container; installing a host-side copy does not activate it inside the container. If an older
+workspace `AGENTS.md` contains Team0 standing instructions, remove that block after the native
+adapter is working to avoid duplicate model-initiated reads or contributions.
+
+OpenClaw's MCP connection is still used for optional Team0 tools. The native hooks are what make
+the read and return automatic. Stop contributions is enforced by the Team0 grant on writes while
+reads remain available; Stop all access revokes both. Those owner controls still require an
+end-to-end OpenClaw acceptance run before this host is called production-proven.
+
 ## Install
 
 Both hosts install from a published catalog, and each connects itself:

@@ -1386,7 +1386,7 @@ def test_every_host_gets_both_lifecycle_hooks_and_team0_abilities():
         "claude-code": json.loads((PLUGIN_ROOT / ".claude-plugin/plugin.json").read_text()),
         "codex": json.loads((PLUGIN_ROOT / ".codex-plugin/plugin.json").read_text()),
     }
-    assert {host.id for host in host_profile.HOSTS} == set(manifests)
+    assert {host.id for host in host_profile.HOSTS} == set(manifests) | {"openclaw"}
     for host_id, manifest in manifests.items():
         servers = manifest.get("mcpServers")
         assert servers, f"{host_id} has no Team0 abilities"
@@ -1396,6 +1396,15 @@ def test_every_host_gets_both_lifecycle_hooks_and_team0_abilities():
         assert hooks_file.is_file(), f"{host_id} has no lifecycle hooks"
         bridge = json.dumps(servers)
         assert "team0_mcp_proxy.py" in bridge, f"{host_id} does not use the shared Team0 bridge"
+    openclaw = json.loads((PLUGIN_ROOT / "openclaw.plugin.json").read_text())
+    package = json.loads((PLUGIN_ROOT / "package.json").read_text())
+    assert openclaw["id"] == "team0-agent-runtime"
+    assert openclaw["activation"]["onStartup"] is True
+    assert package["openclaw"]["extensions"] == ["./openclaw/index.mjs"]
+    adapter = (PLUGIN_ROOT / "openclaw/adapter.mjs").read_text()
+    assert "before_prompt_build" in (PLUGIN_ROOT / "openclaw/index.mjs").read_text()
+    assert "agent_end" in (PLUGIN_ROOT / "openclaw/index.mjs").read_text()
+    assert "config?.mcp?.servers?.team0" in adapter
 
 
 def test_an_abandoned_pairing_never_blocks_the_next_attempt(tmp_path):
@@ -1434,6 +1443,15 @@ def test_a_host_finds_its_own_credential_in_its_plugin_data_directory(tmp_path, 
     assert host_profile.host_credential(
         "codex", loader=lambda root=None: saved.get(str(root))
     ) == {"key": "t0_codex", "host_id": "codex"}
+
+
+def test_openclaw_uses_its_current_mcp_key_not_an_old_saved_key(monkeypatch):
+    monkeypatch.setenv("TEAM0_API_KEY", "t0_current_openclaw")
+    monkeypatch.setattr(team0_hook, "_host_credential", lambda *_args, **_kwargs: {
+        "key": "t0_old_openclaw", "host_id": "openclaw",
+    })
+    assert team0_hook._load_saved_credential("openclaw") == "t0_current_openclaw"
+    assert os.environ["TEAM0_API_KEY"] == "t0_current_openclaw"
 
 
 def test_a_session_that_starts_unconnected_opens_the_connect_page(monkeypatch, tmp_path, capsys):

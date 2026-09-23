@@ -50,6 +50,10 @@ def _configure_host_environment(host_id: str) -> None:
 
 def _load_saved_credential(host_id: str) -> str | None:
     ambient_key = os.environ.get("TEAM0_API_KEY") or os.environ.get("TEAM0_ACCESS_KEY")
+    # OpenClaw's MCP connection owns this grant. Never substitute a credential
+    # left by another install for the key currently configured in its Gateway.
+    if host_id == "openclaw" and ambient_key:
+        return ambient_key
     saved = _host_credential(host_id)
     # The unscoped legacy entry belongs to Codex, but an explicit ambient key
     # still wins over it, as it did before host profiles were shared.

@@ -61,6 +61,12 @@ HOSTS: tuple[HostProfile, ...] = (
         data_dir_env="CLAUDE_PLUGIN_DATA",
         data_dir_glob="~/.claude/plugins/data/*",
     ),
+    HostProfile(
+        id="openclaw",
+        name="OpenClaw",
+        marker="OPENCLAW_PLUGIN_ROOT",
+        data_dir_env="TEAM0_RUNTIME_DATA_DIR",
+    ),
 )
 _BY_ID = {host.id: host for host in HOSTS}
 DEFAULT_HOST = _BY_ID["codex"]

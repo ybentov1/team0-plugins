@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "team0-agent-runtime",
   "displayName": "Team0 Living Understanding",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Mount a Team0 Living Understanding before every Claude Code turn and return completed turns afterward.",
   "author": {
     "name": "Team0"
