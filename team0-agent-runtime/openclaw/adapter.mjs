@@ -64,25 +64,27 @@ export function createOpenClawAdapter({ getConfig, invoke, logger }) {
   const sessionPending = new Map();
 
   async function beforePromptBuild(event, ctx) {
-    if (ctx.inputProvenance?.kind !== 'external_user') return;
-    if (typeof event.currentUserMessage !== 'string' || !event.currentUserMessage.trim()) return;
+    const directWebchatUser = !ctx.inputProvenance && ctx.channel === 'webchat'
+      && ctx.messageProvider === 'webchat' && (!ctx.trigger || ctx.trigger === 'user');
+    if (ctx.inputProvenance?.kind !== 'external_user' && !directWebchatUser) return;
+    if (typeof event.prompt !== 'string' || !event.prompt.trim()) return;
     const connection = connectionFromConfig(getConfig());
     if (!connection) return;
     const sessionId = ctx.sessionKey || ctx.sessionId;
-    const turnId = event.currentUserMessageId || ctx.runId;
+    const turnId = ctx.runId;
     if (!sessionId || !turnId) return;
     const prior = pending.get(ctx.runId) || sessionPending.get(sessionId);
     if (prior?.turnId === turnId) return prior.injection;
     try {
       const result = await invoke('before-turn', {
-        session_id: sessionId, turn_id: turnId, prompt: event.currentUserMessage,
+        session_id: sessionId, turn_id: turnId, prompt: event.prompt,
       }, connection);
       ctx.hookInvocation?.assertActive?.();
       const context = result?.hookSpecificOutput?.additionalContext;
       const injection = typeof context === 'string' && context
         ? { prependSystemContext: `${context}\n\nTeam0's OpenClaw runtime returns this completed turn automatically. Do not call team0_contribute_conversation for this turn.` }
         : undefined;
-      const state = { sessionId, turnId, prompt: event.currentUserMessage, connection, injection };
+      const state = { sessionId, turnId, prompt: event.prompt, connection, injection };
       if (ctx.runId) pending.set(ctx.runId, state);
       sessionPending.set(sessionId, state);
       return injection;
