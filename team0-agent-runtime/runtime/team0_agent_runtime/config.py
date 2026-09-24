@@ -73,6 +73,9 @@ class RuntimeConfig:
             for item in env.get("TEAM0_RUNTIME_TRUSTED_ACTION_TOOLS", "").split(",")
             if item.strip()
         )
+        host_id = (env.get("TEAM0_RUNTIME_HOST_ID") or "custom-agent").strip()
+        # Claude Code file-backs hook context above 10k chars and shows only a 2k preview.
+        context_limit = 9_000 if host_id == "claude-code" else 40_000
         return cls(
             api_key=env.get("TEAM0_API_KEY") or env.get("TEAM0_ACCESS_KEY"),
             contribution_source_id=(
@@ -81,7 +84,7 @@ class RuntimeConfig:
             ),
             api_base_url=base_url,
             data_dir=Path(data_root).expanduser(),
-            host_id=(env.get("TEAM0_RUNTIME_HOST_ID") or "custom-agent").strip(),
+            host_id=host_id,
             enabled=_enabled(env.get("TEAM0_RUNTIME_ENABLED"), default=True),
             context_timeout_seconds=_positive_float(
                 env.get("TEAM0_RUNTIME_READ_TIMEOUT_SECONDS"), 7.0, 10.0
@@ -90,7 +93,9 @@ class RuntimeConfig:
                 env.get("TEAM0_RUNTIME_WRITE_TIMEOUT_SECONDS"), 5.0, 30.0
             ),
             context_max_chars=_positive_int(
-                env.get("TEAM0_RUNTIME_CONTEXT_MAX_CHARS"), 28_000, 40_000
+                env.get("TEAM0_RUNTIME_CONTEXT_MAX_CHARS"),
+                9_000 if host_id == "claude-code" else 28_000,
+                context_limit,
             ),
             report_tool_activity=_enabled(
                 env.get("TEAM0_RUNTIME_TOOL_ACTIVITY"), default=True

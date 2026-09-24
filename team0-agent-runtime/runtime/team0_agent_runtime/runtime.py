@@ -136,7 +136,7 @@ class Team0AgentRuntime:
             # failed sync to retain and retry.
             self.store.delete_turn(turn_id)
             self.store.update_health(
-                state="healthy", last_write_error=None, last_write_at=utc_now()
+                last_write_error=None, last_write_at=utc_now()
             )
             return None
         prompt = str(turn.get("prompt") or "")

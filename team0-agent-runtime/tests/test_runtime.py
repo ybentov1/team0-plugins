@@ -481,8 +481,11 @@ def test_read_failure_never_blocks_the_host_and_is_visible_in_health(tmp_path):
 
 @pytest.mark.parametrize("status", [401, 403, 410])
 def test_revoked_read_access_stays_revoked_in_health(tmp_path, status):
-    client = FakeClient(read_error=ApiError("auth.revoked", status=status))
-    runtime = Team0AgentRuntime(config(tmp_path), client=client)
+    client = FakeClient(
+        read_error=ApiError("auth.revoked", status=status),
+        binding_error=ApiError("auth.revoked", status=status),
+    )
+    runtime = Team0AgentRuntime(config(tmp_path, contribution_source_id=None), client=client)
 
     context, warning = runtime.before_turn(
         session_id="session_1", turn_id="turn_1", prompt="Continue"
@@ -491,6 +494,14 @@ def test_revoked_read_access_stays_revoked_in_health(tmp_path, status):
     assert context is None
     assert warning == "Team0 context was unavailable for this turn."
     assert runtime.store.health()["state"] == "revoked"
+
+    runtime.after_turn(turn_id="turn_1", assistant_message="Acknowledged")
+
+    assert runtime.store.health()["state"] == "revoked"
+    assert runtime.store.health()["last_read_status"] == status
+    assert not client.events
+    assert runtime.store.get_turn("turn_1") is None
+    assert runtime.store.counts() == {"pending": 0, "failed": 0}
 
 
 def test_codex_and_claude_keep_independent_lifecycle_sources_after_one_is_revoked(tmp_path):
@@ -752,6 +763,23 @@ def test_claude_uses_its_persistent_plugin_data_directory(tmp_path):
     )
 
     assert configured.data_dir == tmp_path
+
+
+def test_claude_hook_context_stays_inline_below_host_file_handoff_limit():
+    claude = RuntimeConfig.from_environ({"TEAM0_RUNTIME_HOST_ID": "claude-code"})
+    oversized = RuntimeConfig.from_environ({
+        "TEAM0_RUNTIME_HOST_ID": "claude-code",
+        "TEAM0_RUNTIME_CONTEXT_MAX_CHARS": "40000",
+    })
+    codex = RuntimeConfig.from_environ({"TEAM0_RUNTIME_HOST_ID": "codex"})
+
+    assert claude.context_max_chars == oversized.context_max_chars == 9_000
+    assert codex.context_max_chars == 28_000
+    context = build_agent_turn_context(
+        {"id": "wmread_test", "status": "partial", "context": "x" * 24_000},
+        maximum=claude.context_max_chars,
+    ).render()
+    assert len(context) <= 9_000 < 10_000
 
 
 def test_inline_claude_uses_a_host_isolated_fallback_directory(tmp_path, monkeypatch):
